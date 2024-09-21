@@ -3,7 +3,8 @@ The aim is to download the sync lyrics (.LRC) from the Spotify API and write the
 I'm sharing it in case people are in the same situation as me.  
 
 Prerequisite:
-Install fzf.
+Install fzf.  
+Fill the two Spotify variables at the beginning of the script.  
 (optional) if you want to rename your flac files, put them in the same directory as the script.
 
 Usage:  
