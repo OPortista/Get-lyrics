@@ -11,7 +11,9 @@ Prerequisite:
 
 Usage:  
 Search by artist:  
+```
 ./get-lyrics.sh -A "ARTIST_NAME"
+```
 
 Search by album:  
 ./get-lyrics.sh -a "ALBUM_NAME"
