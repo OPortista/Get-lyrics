@@ -1,6 +1,7 @@
 # Spotify Lyrics Downloader & FLAC Renamer
 
-This script was originally designed for personal use, but I’m sharing it in case others find themselves in the same situation. Its primary function is to download synchronized lyrics (.LRC) from the Spotify API and embed them into the "lyrics" tag of your FLAC files.  
+This script was originally designed for personal use, but I’m sharing it in case others find themselves in the same situation.             
+Its primary function is to download synchronized lyrics (.LRC) from the Spotify API and embed them into the "lyrics" tag of your FLAC files.  
 Additionally, it includes an optional feature to rename FLAC files according to specific naming conventions, particularly useful for albums with multiple artists and features.
 
 ## Prerequisites
