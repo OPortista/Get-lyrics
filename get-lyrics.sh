@@ -29,7 +29,7 @@ get_access_token() {
     echo $(echo $response | jq -r '.access_token')
 }
 
-search_spotify() {
+search_artist() {
     local search_query=$1
     local access_token=$2
     encoded_query=$(echo "$search_query" | jq -sRr @uri)
@@ -37,7 +37,13 @@ search_spotify() {
         -H "Authorization: Bearer $access_token"
 }
 
-search_album_spotify() {
+display_artists_result() {
+    local json_results=$1
+    echo ""
+    echo "$json_results" | jq -r '.artists.items[] | "\(.name) - ID: \(.id)"' | fzf --height 60% --reverse --inline-info --header "Choose an artist :"
+}
+
+search_album() {
     local search_query=$1
     local access_token=$2
     encoded_query=$(echo "$search_query" | jq -sRr @uri)
@@ -45,13 +51,7 @@ search_album_spotify() {
         -H "Authorization: Bearer $access_token"
 }
 
-display_results() {
-    local json_results=$1
-    echo ""
-    echo "$json_results" | jq -r '.artists.items[] | "\(.name) - ID: \(.id)"' | fzf --height 60% --reverse --inline-info --header "Choose an artist :"
-}
-
-display_album_results() {
+display_albums_result() {
     local json_results=$1
     echo ""
     echo "$json_results" | jq -r '.albums.items[] | "\(.name) by \(.artists[0].name) - ID: \(.id)"' | fzf --height 60% --reverse --inline-info --header "Choose an album :"
@@ -68,7 +68,7 @@ display_artist_albums() {
     local json_results=$1
     echo ""
     echo "$json_results" | jq -r '.items[] | "\(.name) - ID: \(.id) (Tracks: \(.total_tracks))"' | sort | fzf --height 40% --reverse --inline-info --header "Choose an album :"
-}
+} 
 
 get_album() {
     local album_id="$1"
@@ -84,6 +84,15 @@ get_track() {
     curl -s -X GET \
         -H "Authorization: Bearer $token" \
         "https://api.spotify.com/v1/tracks/$track_id" | jq .
+}
+
+get_album_details() {
+    details=$(get_album "$selected_id_album")
+    artist=$(echo $details | jq -r '.artists[].name' | tr '\n' ' ')
+    album=$(echo $details | jq -r '.name')
+    disc_number=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
+    disc_count=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
+    total_tracks=$(echo $details | jq -r '.total_tracks')
 }
 
 format_name() {
@@ -107,15 +116,6 @@ format_name() {
     else
         formatted_name="${formatted_track_number}. $base_name"
     fi
-}
-
-get_album_details() {
-    details=$(get_album "$selected_id_album")
-    artist=$(echo $details | jq -r '.artists[].name' | tr '\n' ' ')
-    album=$(echo $details | jq -r '.name')
-    disc_number=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
-    disc_count=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
-    total_tracks=$(echo $details | jq -r '.total_tracks')
 }
 
 download_lrc() {
@@ -259,8 +259,8 @@ main() {
         exit 1
     fi
 
-    search_results=$(search_spotify "$artist_name" "$access_token")
-    selected_artist=$(display_results "$search_results")
+    search_results=$(search_artist "$artist_name" "$access_token")
+    selected_artist=$(display_artists_result "$search_results")
 
     if [ -z "$selected_artist" ]; then
         echo "No artist chosen."
@@ -323,8 +323,8 @@ elif [[ -n "$album_name" ]]; then
         exit 1
     fi
 
-    album_results=$(search_album_spotify "$album_name" "$access_token")
-    selected_album=$(display_album_results "$album_results")
+    album_results=$(search_album "$album_name" "$access_token")
+    selected_album=$(display_albums_result "$album_results")
 
     if [ -z "$selected_album" ]; then
         echo "No album chosen."
