@@ -109,7 +109,7 @@ download_lrc() {
             name=$(echo "$track" | jq -r '.name')
 
             if [[ "$name" == *\/* ]]; then
-                name=$(echo "$name" | tr '/' '_' )
+                name=$(echo "$name" | tr '/' '_' | tr '?' '_' )
             fi
 
             if [ -n "$secondary_artists" ]; then
@@ -157,7 +157,7 @@ format_name() {
     name=$(echo "$track" | jq -r '.name')
 
     if [[ "$name" == *\/* ]]; then
-        name=$(echo "$name" | tr '/' '_')
+        name=$(echo "$name" | tr '/' '_' | tr '?' '_' )
     fi
 
     if [ -n "$secondary_artists" ]; then
