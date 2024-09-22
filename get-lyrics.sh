@@ -108,7 +108,7 @@ download_lrc() {
             id=$(echo "$track" | jq -r '.id')
             name=$(echo "$track" | jq -r '.name')
 
-            if [[ "$name" == *\/* ]]; then
+            if [[ "$name" == *\/* || "$name" == *\?* ]]; then
                 name=$(echo "$name" | tr '/' '_' | tr '?' '_' )
             fi
 
@@ -156,7 +156,7 @@ format_name() {
     disc_number=$(echo "$track" | jq -r '.disc_number')
     name=$(echo "$track" | jq -r '.name')
 
-    if [[ "$name" == *\/* ]]; then
+    if [[ "$name" == *\/* || "$name" == *\?* ]]; then
         name=$(echo "$name" | tr '/' '_' | tr '?' '_' )
     fi
 
