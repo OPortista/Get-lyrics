@@ -26,7 +26,18 @@ Example :
 ./get-lyrics.sh -A "ARTIST_NAME" -r
 ```
 
-For the rename function, you're flac files need to be name with the good number at the beginning.  
+Rename function:  
+This function is more designed to be use with Rap music who have a lot of featuring.  
+You're final file will be :  
+One disc:  
+[track_number]. [title]  
+More disc album:  
+[discnumber][track_number]. [title]  
+With featuring:  
+[discnumber][track_number]. [title] feat [other_artist]  
+
+
+you're flac files need to be name with the good number at the beginning.  
 One disc album :  
 01 TITLE  
 02 TITLE  
