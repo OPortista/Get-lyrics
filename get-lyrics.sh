@@ -2,7 +2,7 @@
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
-GRAS='\033[0;1m'
+BOLD='\033[0;1m'
 RESET='\033[0m'
 CHECKs='\xE2\x9C\x94'
 CROSSs='\xE2\x9D\x8C'
@@ -95,7 +95,7 @@ download_lrc() {
 	disc_count=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
 	total_tracks=$(echo $details | jq -r '.total_tracks')
 	count="0"
-	echo -e "${GRAS} $artist- $album ($disc_number discs | $total_tracks tracks)${RESET}"
+	echo -e "${BOLD} $artist- $album ($disc_number discs | $total_tracks tracks)${RESET}"
 	echo
 	while IFS= read -r track; do
 		{
@@ -146,7 +146,7 @@ rename_file() {
 	album=$(echo $details | jq -r '.name')
 	disc_count=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
 	total_tracks=$(echo $details | jq -r '.total_tracks')
-	echo -e "${GRAS} $artist - $album ($disc_count discs | $total_tracks tracks)${RESET}"
+	echo -e "${BOLD} $artist - $album ($disc_count discs | $total_tracks tracks)${RESET}"
 	echo
 	while IFS= read -r track; do
 		{
@@ -184,7 +184,7 @@ rename_file() {
 			disc_count=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
 			total_tracks=$(echo $details | jq -r '.total_tracks')
 
-			echo -e "${GRAS} $artist - $album ($disc_count discs | $total_tracks tracks)${RESET}"
+			echo -e "${BOLD} $artist - $album ($disc_count discs | $total_tracks tracks)${RESET}"
 			echo
 			while IFS= read -r track; do
 				{
@@ -241,7 +241,7 @@ write_tag () {
 		case "$response" in
 			y)
 				echo
-				echo -e "${GRAS} Writing lyrics...${RESET}"
+				echo -e "${BOLD} Writing lyrics...${RESET}"
 				count="0"
 				for flac_file in *.flac; do
 					flac_number=$(echo "$flac_file" | grep -oP '^\d+')
