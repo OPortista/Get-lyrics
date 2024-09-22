@@ -324,7 +324,7 @@ elif [[ -n "$album_name" ]]; then
 	album_results=$(search_album_spotify "$album_name" "$access_token")
 	selected_album=$(display_album_results "$album_results")
 	if [ -z "$selected_album" ]; then
-		echo "No album choosed."
+		echo "No album chosen."
 		exit 1
 	fi
 	selected_id_album=$(echo "$selected_album" | awk -F ' - ID: ' '{print $2}' | tr -d '\n')
@@ -343,14 +343,14 @@ elif [[ -n "$artist_name" ]]; then
 	search_results=$(search_spotify "$artist_name" "$access_token")
 	selected_artist=$(display_results "$search_results")
 	if [ -z "$selected_artist" ]; then
-		echo "No artist choosed."
+		echo "No artist chosen."
 		exit 1
 	fi
 	selected_id_artist=$(echo "$selected_artist" | awk -F ' - ID: ' '{print $2}' | tr -d '\n')
 	artist_albums=$(get_artist_albums "$selected_id_artist" "$access_token")
 	selected_album=$(display_artist_albums "$artist_albums")
 	if [ -z "$selected_album" ]; then
-		echo "No album choosed."
+		echo "No album chosen."
 		exit 1
 	fi
 	selected_id_album=$(echo "$selected_album" | awk -F '- ID: | \\(Tracks' '{print $2}' | tr -d '\n')
@@ -366,20 +366,20 @@ else
 	read -r search_query
 	access_token=$(get_access_token)
 	if [ -z "$access_token" ]; then
-		echo ERROR : Unable to get token."
+		echo "ERROR : Unable to get token."
 		exit 1
 	fi
 	search_results=$(search_spotify "$search_query" "$access_token")
 	selected_artist=$(display_results "$search_results")
 	if [ -z "$selected_artist" ]; then
-		echo "No artist choosed."
+		echo "No artist chosen."
 		exit 1
 	fi
 	selected_id_artist=$(echo "$selected_artist" |  awk -F ' - ID: ' '{print $2}' | tr -d '\n')
 	artist_albums=$(get_artist_albums "$selected_id_artist" "$access_token")
 	selected_album=$(display_artist_albums "$artist_albums")
 	if [ -z "$selected_album" ]; then
-		echo "No album chooses."
+		echo "No album chosen."
 		exit 1
 	fi
 	selected_id_album=$(echo "$selected_album" | awk -F '- ID: | \\(Tracks' '{print $2}' | tr -d '\n')
