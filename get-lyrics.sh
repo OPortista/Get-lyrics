@@ -86,14 +86,44 @@ get_track() {
         "https://api.spotify.com/v1/tracks/$track_id" | jq .
 }
 
-download_lrc() {
-    echo
+format_name() {
+    secondary_artists=$(echo "$track" | jq -r '.artists[].name' | tail -n +2)
+    track_number=$(echo "$track" | jq -r '.track_number')
+    formatted_track_number=$(printf "%02d" "$track_number")
+    disc_number=$(echo "$track" | jq -r '.disc_number')
+    id=$(echo "$track" | jq -r '.id')
+    name=$(echo "$track" | jq -r '.name')
+
+    if [[ "$name" == *\/* || "$name" == *\?* ]]; then
+        name=$(echo "$name" | tr '/' '_' | tr '?' '_' )
+    fi
+
+    if [ -n "$secondary_artists" ]; then
+        feat_artists=$(echo "$secondary_artists" | paste -sd ", " | sed 's/,/, /g')
+        base_name="$name feat $feat_artists"
+    else
+        base_name="$name"
+    fi
+
+    if [[ "$disc_count" -gt 1 ]]; then
+        formatted_name="${disc_number}${formatted_track_number}. $base_name"
+    else
+        formatted_name="${formatted_track_number}. $base_name"
+    fi
+}
+
+get_album_details() {
     details=$(get_album "$selected_id_album")
     artist=$(echo $details | jq -r '.artists[].name' | tr '\n' ' ')
     album=$(echo $details | jq -r '.name')
     disc_number=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
     disc_count=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
     total_tracks=$(echo $details | jq -r '.total_tracks')
+}
+
+download_lrc() {
+    echo
+    get_album_details
     count="0"
 
     echo -e "${BOLD} $artist - $album ($disc_number discs | $total_tracks tracks)${RESET}"
@@ -101,30 +131,7 @@ download_lrc() {
 
     while IFS= read -r track; do
         {
-            secondary_artists=$(echo "$track" | jq -r '.artists[].name' | tail -n +2)
-            track_number=$(echo "$track" | jq -r '.track_number')
-            formatted_track_number=$(printf "%02d" "$track_number") # Formatage en 2 chiffres
-            disc_number=$(echo "$track" | jq -r '.disc_number')
-            id=$(echo "$track" | jq -r '.id')
-            name=$(echo "$track" | jq -r '.name')
-
-            if [[ "$name" == *\/* || "$name" == *\?* ]]; then
-                name=$(echo "$name" | tr '/' '_' | tr '?' '_' )
-            fi
-
-            if [ -n "$secondary_artists" ]; then
-                feat_artists=$(echo "$secondary_artists" | paste -sd ", " | sed 's/,/, /g')
-                base_name="$name feat $feat_artists"
-            else
-                base_name="$name"
-            fi
-
-            if [[ "$disc_count" -gt 1 ]]; then
-                formatted_name="${disc_number}${formatted_track_number}. $base_name"
-            else
-                formatted_name="${formatted_track_number}. $base_name"
-            fi
-
+            format_name
             output_file="${formatted_name}.lrc"
             json_lyrics=$(curl -s "https://spotify-lyrics-api-pi.vercel.app/?trackid=${id}&format=lrc" | jq)
 
@@ -149,38 +156,9 @@ download_lrc() {
     echo
 }
 
-format_name() {
-    secondary_artists=$(echo "$track" | jq -r '.artists[].name' | tail -n +2)
-    track_number=$(echo "$track" | jq -r '.track_number')
-    formatted_track_number=$(printf "%02d" "$track_number")
-    disc_number=$(echo "$track" | jq -r '.disc_number')
-    name=$(echo "$track" | jq -r '.name')
-
-    if [[ "$name" == *\/* || "$name" == *\?* ]]; then
-        name=$(echo "$name" | tr '/' '_' | tr '?' '_' )
-    fi
-
-    if [ -n "$secondary_artists" ]; then
-        feat_artists=$(echo "$secondary_artists" | paste -sd ", " | sed 's/,/, /g')
-        base_name="$name feat $feat_artists"
-    else
-        base_name="$name"
-    fi
-
-    if [[ "$disc_count" -gt 1 ]]; then
-        formatted_name="${disc_number}${formatted_track_number}. $base_name"
-    else
-        formatted_name="${formatted_track_number}. $base_name"
-    fi
-}
-
 rename_file() {
     echo
-    details=$(get_album "$selected_id_album")
-    artist=$(echo "$details" | jq -r '.artists[].name' | tr '\n' ' ')
-    album=$(echo "$details" | jq -r '.name')
-    disc_count=$(echo "$details" | jq '.tracks.items | map(.disc_number) | unique | length')
-    total_tracks=$(echo "$details" | jq -r '.total_tracks')
+    get_album_details
 
     echo -e "${BOLD} $artist - $album ($disc_count discs | $total_tracks tracks)${RESET}"
     echo
@@ -277,6 +255,39 @@ write_tag() {
     fi
 }
 
+main() {
+    access_token=$(get_access_token)
+    if [ -z "$access_token" ]; then
+        echo "ERROR: Unable to get token."
+        exit 1
+    fi
+
+    search_results=$(search_spotify "$artist_name" "$access_token")
+    selected_artist=$(display_results "$search_results")
+
+    if [ -z "$selected_artist" ]; then
+        echo "No artist chosen."
+        exit 1
+    fi
+
+    selected_id_artist=$(echo "$selected_artist" | awk -F ' - ID: ' '{print $2}' | tr -d '\n')
+    artist_albums=$(get_artist_albums "$selected_id_artist" "$access_token")
+    selected_album=$(display_artist_albums "$artist_albums")
+
+    if [ -z "$selected_album" ]; then
+        echo "No album chosen."
+        exit 1
+    fi
+
+    selected_id_album=$(echo "$selected_album" | awk -F '- ID: | \\(Tracks' '{print $2}' | tr -d '\n')
+
+    if [ "$last_arg" == "-r" ]; then
+        rename_file
+        exit 0
+    else
+        download_lrc
+    fi
+}
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         -a|--album)
@@ -332,84 +343,26 @@ elif [[ -n "$album_name" ]]; then
         download_lrc
     fi
 elif [[ -n "$artist_name" ]]; then
-    access_token=$(get_access_token)
-    if [ -z "$access_token" ]; then
-        echo "ERROR: Unable to get token."
-        exit 1
-    fi
-
-    search_results=$(search_spotify "$artist_name" "$access_token")
-    selected_artist=$(display_results "$search_results")
-
-    if [ -z "$selected_artist" ]; then
-        echo "No artist chosen."
-        exit 1
-    fi
-
-    selected_id_artist=$(echo "$selected_artist" | awk -F ' - ID: ' '{print $2}' | tr -d '\n')
-    artist_albums=$(get_artist_albums "$selected_id_artist" "$access_token")
-    selected_album=$(display_artist_albums "$artist_albums")
-
-    if [ -z "$selected_album" ]; then
-        echo "No album chosen."
-        exit 1
-    fi
-
-    selected_id_album=$(echo "$selected_album" | awk -F '- ID: | \\(Tracks' '{print $2}' | tr -d '\n')
-
-    if [ "$last_arg" == "-r" ]; then
-        rename_file
-        exit 0
-    else
-        download_lrc
-    fi
+    main
 else
     echo
     echo "Enter the artist name to search:"
     read -r search_query
-
-    access_token=$(get_access_token)
-    if [ -z "$access_token" ]; then
-        echo "ERROR: Unable to get token."
-        exit 1
-    fi
-
-    search_results=$(search_spotify "$search_query" "$access_token")
-    selected_artist=$(display_results "$search_results")
-
-    if [ -z "$selected_artist" ]; then
-        echo "No artist chosen."
-        exit 1
-    fi
-
-    selected_id_artist=$(echo "$selected_artist" | awk -F ' - ID: ' '{print $2}' | tr -d '\n')
-    artist_albums=$(get_artist_albums "$selected_id_artist" "$access_token")
-    selected_album=$(display_artist_albums "$artist_albums")
-
-    if [ -z "$selected_album" ]; then
-        echo "No album chosen."
-        exit 1
-    fi
-
-    selected_id_album=$(echo "$selected_album" | awk -F '- ID: | \\(Tracks' '{print $2}' | tr -d '\n')
-
-    if [ "$last_arg" == "-r" ]; then
-        rename_file
-        exit 0
-    else
-        download_lrc
-    fi
+    main
 fi
 
 write_tag
-echo "Rename files? (y or n)"
-read -r response
 
-case "$response" in
-    y)
-        rename_file
-        ;;
-    *)
-        exit 0
-        ;;
-esac
+if ls *.flac 1> /dev/null 2>&1; then
+    echo "Rename files? (y or n)"
+    read -r response
+
+    case "$response" in
+        y)
+            rename_file
+            ;;
+        *)
+            exit 0
+            ;;
+    esac
+fi
