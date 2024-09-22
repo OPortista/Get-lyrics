@@ -129,7 +129,7 @@ download_lrc() {
             json_lyrics=$(curl -s "https://spotify-lyrics-api-pi.vercel.app/?trackid=${id}&format=lrc" | jq)
 
             if [[ "$json_lyrics" == *"not available"* ]]; then
-                echo -e "${CROSS} $formatted_name"
+                echo -e "${CROSS}$formatted_name"
                 continue
             fi
 
@@ -149,113 +149,80 @@ download_lrc() {
     echo
 }
 
+format_name() {
+    secondary_artists=$(echo "$track" | jq -r '.artists[].name' | tail -n +2)
+    track_number=$(echo "$track" | jq -r '.track_number')
+    formatted_track_number=$(printf "%02d" "$track_number")
+    disc_number=$(echo "$track" | jq -r '.disc_number')
+    name=$(echo "$track" | jq -r '.name')
+
+    if [[ "$name" == *\/* ]]; then
+        name=$(echo "$name" | tr '/' '_')
+    fi
+
+    if [ -n "$secondary_artists" ]; then
+        feat_artists=$(echo "$secondary_artists" | paste -sd ", " | sed 's/,/, /g')
+        base_name="$name feat $feat_artists"
+    else
+        base_name="$name"
+    fi
+
+    if [[ "$disc_count" -gt 1 ]]; then
+        formatted_name="${disc_number}${formatted_track_number}. $base_name"
+    else
+        formatted_name="${formatted_track_number}. $base_name"
+    fi
+}
+
 rename_file() {
     echo
     details=$(get_album "$selected_id_album")
-    artist=$(echo $details | jq -r '.artists[].name' | tr '\n' ' ')
-    album=$(echo $details | jq -r '.name')
-    disc_count=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
-    total_tracks=$(echo $details | jq -r '.total_tracks')
+    artist=$(echo "$details" | jq -r '.artists[].name' | tr '\n' ' ')
+    album=$(echo "$details" | jq -r '.name')
+    disc_count=$(echo "$details" | jq '.tracks.items | map(.disc_number) | unique | length')
+    total_tracks=$(echo "$details" | jq -r '.total_tracks')
 
     echo -e "${BOLD} $artist - $album ($disc_count discs | $total_tracks tracks)${RESET}"
     echo
 
+    tracks=$(echo "$details" | jq -c '.tracks.items[]')
+
     while IFS= read -r track; do
-        {
-            secondary_artists=$(echo "$track" | jq -r '.artists[].name' | tail -n +2)
-            track_number=$(echo "$track" | jq -r '.track_number')
-            formatted_track_number=$(printf "%02d" "$track_number") # Formatage en 2 chiffres
-            disc_number=$(echo "$track" | jq -r '.disc_number')
-            name=$(echo "$track" | jq -r '.name')
-
-            if [[ "$name" == *\/* ]]; then
-                name=$(echo "$name" | tr '/' '_')
-            fi
-
-            if [ -n "$secondary_artists" ]; then
-                feat_artists=$(echo "$secondary_artists" | paste -sd ", " | sed 's/,/, /g')
-                base_name="$name feat $feat_artists"
-            else
-                base_name="$name"
-            fi
-
-            if [[ "$disc_count" -gt 1 ]]; then
-                formatted_name="${disc_number}${formatted_track_number}. $base_name"
-            else
-                formatted_name="${formatted_track_number}. $base_name"
-            fi
-
-            echo "$formatted_name"
-        }
-    done < <(get_album "$selected_id_album" | jq -c '.tracks.items[]')
+        format_name
+        echo "$formatted_name"
+    done <<< "$tracks"
 
     echo
     echo "CONFIRM ? (y or n)"
     read -r response
 
-    case "$response" in
-        y)
-            echo
-            details=$(get_album "$selected_id_album")
-            artist=$(echo $details | jq -r '.artists[].name' | tr '\n' ' ')
-            album=$(echo $details | jq -r '.name')
-            disc_count=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
-            total_tracks=$(echo $details | jq -r '.total_tracks')
-
-            echo -e "${BOLD} $artist - $album ($disc_count discs | $total_tracks tracks)${RESET}"
-            echo
-
-            while IFS= read -r track; do
-                {
-                    secondary_artists=$(echo "$track" | jq -r '.artists[].name' | tail -n +2)
-                    track_number=$(echo "$track" | jq -r '.track_number')
-                    formatted_track_number=$(printf "%02d" "$track_number")
-                    disc_number=$(echo "$track" | jq -r '.disc_number')
-                    name=$(echo "$track" | jq -r '.name')
-
-                    if [[ "$name" == *\/* ]]; then
-                        name=$(echo "$name" | tr '/' '_')
-                    fi
-
-                    if [ -n "$secondary_artists" ]; then
-                        feat_artists=$(echo "$secondary_artists" | paste -sd ", " | sed 's/,/, /g')
-                        base_name="$name feat $feat_artists"
-                    else
-                        base_name="$name"
-                    fi
+    if [[ "$response" == "y" ]]; then
+        echo
+        while IFS= read -r track; do
+            format_name
+            for file in *.flac; do
+                if [[ -f "$file" ]]; then
+                    filename=$(basename "$file" .flac)
+                    file_track_number=$(echo "$filename" | grep -oE '^[0-9]+')
 
                     if [[ "$disc_count" -gt 1 ]]; then
-                        formatted_name="${disc_number}${formatted_track_number}. $base_name"
-                    else
-                        formatted_name="${formatted_track_number}. $base_name"
-                    fi
-
-                    for file in *.flac; do
-                        if [[ -f "$file" ]]; then
-                            filename=$(basename "$file" .flac)
-                            file_track_number=$(echo "$filename" | grep -oE '^[0-9]+')
-
-                            if [[ "$disc_count" -gt 1 ]]; then
-                                expected_track_number="${disc_number}${formatted_track_number}"
-                                if [[ "$file_track_number" == "$expected_track_number" ]]; then
-                                    new_filename="${formatted_name}.flac"
-                                    mv -v "$file" "$new_filename"
-                                fi
-                            else
-                                if [[ "$file_track_number" == "$formatted_track_number" ]]; then
-                                    new_filename="${formatted_name}.flac"
-                                    mv -v "$file" "$new_filename"
-                                fi
-                            fi
+                        expected_track_number="${disc_number}${formatted_track_number}"
+                        if [[ "$file_track_number" == "$expected_track_number" ]]; then
+                            new_filename="${formatted_name}.flac"
+                            mv -v "$file" "$new_filename"
                         fi
-                    done
-                }
-            done < <(get_album "$selected_id_album" | jq -c '.tracks.items[]')
-            ;;
-        *)
-            exit 0
-            ;;
-    esac
+                    else
+                        if [[ "$file_track_number" == "$formatted_track_number" ]]; then
+                            new_filename="${formatted_name}.flac"
+                            mv -v "$file" "$new_filename"
+                        fi
+                    fi
+                fi
+            done
+        done <<< "$tracks"
+    else
+        exit 0
+    fi
 }
 
 write_tag() {
