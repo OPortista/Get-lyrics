@@ -93,10 +93,7 @@ format_name() {
     disc_number=$(echo "$track" | jq -r '.disc_number')
     id=$(echo "$track" | jq -r '.id')
     name=$(echo "$track" | jq -r '.name')
-
-    if [[ "$name" == *\/* || "$name" == *\?* ]]; then
-        name=$(echo "$name" | tr '/' '_' | tr '?' '_' )
-    fi
+    name="${name//[\/?*]/_}"
 
     if [ -n "$secondary_artists" ]; then
         feat_artists=$(echo "$secondary_artists" | paste -sd ", " | sed 's/,/, /g')
