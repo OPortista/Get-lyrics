@@ -16,12 +16,15 @@ Search by artist:
 ```
 
 Search by album:  
+```
 ./get-lyrics.sh -a "ALBUM_NAME"
+```
 
 If you want to only use rename function, use the same but end with -r :  
 Example :  
+```
 ./get-lyrics.sh -A "ARTIST_NAME" -r
-
+```
 
 For the rename function, you're flac files need to be name with the good number at the beginning.  
 One disc album :  
