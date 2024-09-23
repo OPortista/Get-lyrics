@@ -17,7 +17,7 @@ SPOTIFY_CLIENT_SECRET="xxxxx"
 album_name=""
 artist_name=""
 selected_id_album=""
-rename_flag=0
+rename_flag="0"
 
 usage() {
     echo "Usage: $0 -a <album> [-A <artist>] -i <id> [-r]"
@@ -34,9 +34,9 @@ get_access_token() {
 }
 
 search() {
-    local search_query=$1
-    local access_token=$2
-    local type=$3
+    local search_query="$1"
+    local access_token="$2"
+    local type="$3"
     if [[ $type == "album" ]]; then
         limit=15
     else
@@ -48,8 +48,8 @@ search() {
 }
 
 display_results() {
-    local json_results=$1
-    local type=$2
+    local json_results="$1"
+    local type="$2"
     echo ""
     case "$type" in
         "artists")
@@ -68,15 +68,15 @@ display_results() {
 }
 
 get_artist_albums() {
-    local artist_id=$1
-    local access_token=$2
+    local artist_id="$1"
+    local access_token="$2"
     curl -s -X GET "https://api.spotify.com/v1/artists/$artist_id/albums?include_groups=album&limit=40" \
         -H "Authorization: Bearer $access_token"
 }
 
 get_album() {
     local album_id="$1"
-    local access_token=$2
+    local access_token="$2"
     curl -s -X GET \
         -H "Authorization: Bearer $access_token" \
         "https://api.spotify.com/v1/albums/$album_id" | jq .
