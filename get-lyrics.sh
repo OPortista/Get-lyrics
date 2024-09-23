@@ -76,14 +76,14 @@ get_artist_albums() {
 
 get_album() {
     local album_id="$1"
-    local token=$(get_access_token)
+    local access_token=$2
     curl -s -X GET \
-        -H "Authorization: Bearer $token" \
+        -H "Authorization: Bearer $access_token" \
         "https://api.spotify.com/v1/albums/$album_id" | jq .
 }
 
 get_album_details() {
-    details=$(get_album "$selected_id_album")
+    details=$(get_album "$selected_id_album" $access_token)
     artist=$(echo $details | jq -r '.artists[].name' | tr '\n' ' ')
     album=$(echo $details | jq -r '.name')
     disc_number=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
@@ -142,7 +142,7 @@ download_lrc() {
             echo -e "${CHECK} $formatted_name"
             count=$((count + 1))
         }
-    done < <(get_album "$selected_id_album" | jq -c '.tracks.items[]')
+    done < <(get_album "$selected_id_album" $access_token | jq -c '.tracks.items[]')
 
     echo
     echo "$count/$total_tracks lyrics downloaded"
@@ -248,12 +248,6 @@ write_tag() {
 }
 
 main() {
-    access_token=$(get_access_token)
-    if [ -z "$access_token" ]; then
-        echo "ERROR: Unable to get token."
-        exit 1
-    fi
-
     search_results=$(search "$artist_name" "$access_token" artist)
     selected_artist=$(display_results "$search_results" artists)
 
@@ -280,6 +274,12 @@ main() {
         download_lrc
     fi
 }
+
+access_token=$(get_access_token)
+if [ -z "$access_token" ]; then
+    echo "ERROR: Unable to get token."
+    exit 1
+fi
 
 while getopts ":a:A:i:r" opt; do
     case ${opt} in
@@ -310,12 +310,6 @@ shift $((OPTIND -1))
 if [[ -n "$selected_id_album" ]]; then
     download_lrc
 elif [[ -n "$album_name" ]]; then
-    access_token=$(get_access_token)
-    if [ -z "$access_token" ]; then
-        echo "ERROR: Unable to get token."
-        exit 1
-    fi
-
     album_results=$(search "$album_name" "$access_token" album)
     selected_album=$(display_results "$album_results" albums)
 
