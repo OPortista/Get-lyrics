@@ -29,32 +29,38 @@ get_access_token() {
     echo $(echo $response | jq -r '.access_token')
 }
 
-search_artist() {
+search() {
     local search_query=$1
     local access_token=$2
+    local type=$3
+    if [[ $type == "album" ]]; then
+        limit=15
+    else
+        limit=40
+    fi
     encoded_query=$(echo "$search_query" | jq -sRr @uri)
-    curl -s -X GET "https://api.spotify.com/v1/search?q=$encoded_query&type=artist&limit=15" \
+    curl -s -X GET "https://api.spotify.com/v1/search?q=$encoded_query&type=$type&limit=$limit" \
         -H "Authorization: Bearer $access_token"
 }
 
-display_artists_result() {
+display_results() {
     local json_results=$1
+    local type=$2
     echo ""
-    echo "$json_results" | jq -r '.artists.items[] | "\(.name) - ID: \(.id)"' | fzf --height 60% --reverse --inline-info --header "Choose an artist :"
-}
-
-search_album() {
-    local search_query=$1
-    local access_token=$2
-    encoded_query=$(echo "$search_query" | jq -sRr @uri)
-    curl -s -X GET "https://api.spotify.com/v1/search?q=$encoded_query&type=album&limit=40" \
-        -H "Authorization: Bearer $access_token"
-}
-
-display_albums_result() {
-    local json_results=$1
-    echo ""
-    echo "$json_results" | jq -r '.albums.items[] | "\(.name) by \(.artists[0].name) - ID: \(.id)"' | fzf --height 60% --reverse --inline-info --header "Choose an album :"
+    case "$type" in
+        "artists")
+            echo "$json_results" | jq -r '.artists.items[] | "\(.name) - ID: \(.id)"' | \
+            fzf --height 60% --reverse --inline-info --header "Choose an artist :"
+            ;;
+        "albums")
+            echo "$json_results" | jq -r '.albums.items[] | "\(.name) by \(.artists[0].name) - ID: \(.id)"' | \
+            fzf --height 60% --reverse --inline-info --header "Choose an album :"
+            ;;
+        "artist_albums")
+            echo "$json_results" | jq -r '.items[] | "\(.name) - ID: \(.id) (Tracks: \(.total_tracks))"' | \
+            sort | fzf --height 40% --reverse --inline-info --header  "Choose an album :"
+            ;;
+    esac
 }
 
 get_artist_albums() {
@@ -64,26 +70,12 @@ get_artist_albums() {
         -H "Authorization: Bearer $access_token"
 }
 
-display_artist_albums() {
-    local json_results=$1
-    echo ""
-    echo "$json_results" | jq -r '.items[] | "\(.name) - ID: \(.id) (Tracks: \(.total_tracks))"' | sort | fzf --height 40% --reverse --inline-info --header "Choose an album :"
-} 
-
 get_album() {
     local album_id="$1"
     local token=$(get_access_token)
     curl -s -X GET \
         -H "Authorization: Bearer $token" \
         "https://api.spotify.com/v1/albums/$album_id" | jq .
-}
-
-get_track() {
-    local track_id="$1"
-    local token=$(get_access_token)
-    curl -s -X GET \
-        -H "Authorization: Bearer $token" \
-        "https://api.spotify.com/v1/tracks/$track_id" | jq .
 }
 
 get_album_details() {
@@ -123,7 +115,7 @@ download_lrc() {
     get_album_details
     count="0"
 
-    echo -e "${BOLD} $artist - $album ($disc_number discs | $total_tracks tracks)${RESET}"
+    echo -e "${BOLD} $artist- $album ($disc_number discs | $total_tracks tracks)${RESET}"
     echo
 
     while IFS= read -r track; do
@@ -157,7 +149,7 @@ rename_file() {
     echo
     get_album_details
 
-    echo -e "${BOLD} $artist - $album ($disc_count discs | $total_tracks tracks)${RESET}"
+    echo -e "${BOLD} $artist- $album ($disc_count discs | $total_tracks tracks)${RESET}"
     echo
 
     tracks=$(echo "$details" | jq -c '.tracks.items[]')
@@ -259,8 +251,8 @@ main() {
         exit 1
     fi
 
-    search_results=$(search_artist "$artist_name" "$access_token")
-    selected_artist=$(display_artists_result "$search_results")
+    search_results=$(search "$artist_name" "$access_token" artist)
+    selected_artist=$(display_results "$search_results" artists)
 
     if [ -z "$selected_artist" ]; then
         echo "No artist chosen."
@@ -269,7 +261,7 @@ main() {
 
     selected_id_artist=$(echo "$selected_artist" | awk -F ' - ID: ' '{print $2}' | tr -d '\n')
     artist_albums=$(get_artist_albums "$selected_id_artist" "$access_token")
-    selected_album=$(display_artist_albums "$artist_albums")
+    selected_album=$(display_results "$artist_albums" artist_albums)
 
     if [ -z "$selected_album" ]; then
         echo "No album chosen."
@@ -285,6 +277,7 @@ main() {
         download_lrc
     fi
 }
+
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         -a|--album)
@@ -323,8 +316,8 @@ elif [[ -n "$album_name" ]]; then
         exit 1
     fi
 
-    album_results=$(search_album "$album_name" "$access_token")
-    selected_album=$(display_albums_result "$album_results")
+    album_results=$(search "$album_name" "$access_token" album)
+    selected_album=$(display_results "$album_results" albums)
 
     if [ -z "$selected_album" ]; then
         echo "No album chosen."
@@ -344,7 +337,7 @@ elif [[ -n "$artist_name" ]]; then
 else
     echo
     echo "Enter the artist name to search:"
-    read -r search_query
+    read -r artist_name
     main
 fi
 
