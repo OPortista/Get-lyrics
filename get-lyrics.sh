@@ -206,7 +206,6 @@ write_tag() {
                     lrc_file=$(ls | grep -P "^${flac_number}.*\.lrc")
 
                     if [ -n "$lrc_file" ]; then
-                        # Lire le contenu du fichier .lrc
                         lyrics=$(cat "$lrc_file")
                         metaflac --remove-tag="lyrics" --set-tag="lyrics=$lyrics" "$flac_file"
                         echo -e "${CHECK} $flac_file"
