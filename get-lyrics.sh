@@ -11,14 +11,18 @@ CHECK="${GREEN}${CHECKs}${RESET}"
 CROSS="${RED}${CROSSs}${RESET}"
 SKIP="${BLUE}${SKIPs}${RESET}"
 
-last_arg="${@: -1}"
-
 SPOTIFY_CLIENT_ID="xxxxx"
 SPOTIFY_CLIENT_SECRET="xxxxx"
 
 album_name=""
 artist_name=""
 selected_id_album=""
+rename_flag=0
+
+usage() {
+    echo "Usage: $0 -a <album> [-A <artist>] -i <id> [-r]"
+    exit 1
+}
 
 get_access_token() {
     local response=$(curl -s -X POST \
@@ -269,7 +273,7 @@ main() {
 
     selected_id_album=$(echo "$selected_album" | awk -F '- ID: | \\(Tracks' '{print $2}' | tr -d '\n')
 
-    if [ "$last_arg" == "-r" ]; then
+    if [ $rename_flag -eq 1 ]; then
         rename_file
         exit 0
     else
@@ -277,34 +281,31 @@ main() {
     fi
 }
 
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        -a|--album)
-            album_name="$2"
-            shift 2
+while getopts ":a:A:i:r" opt; do
+    case ${opt} in
+        a)
+            album_name="$OPTARG"
             ;;
-        -A|--artist)
-            artist_name="$2"
-            shift 2
+        A)
+            artist_name="$OPTARG"
             ;;
-        -i|--id)
-            selected_id_album="$2"
-            shift 2
+        i)
+            selected_id_album="$OPTARG"
             ;;
-        -r|--rename)
-            shift 2
-            break
+        r)
+            rename_flag=1
             ;;
-        --)
-            shift
-            break
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage
             ;;
-        *)
-            echo "Usage: $0 -a <album> [-A <artist>] -i <id>"
-            exit 1
+        :)
+            echo "Option -$OPTARG requires an argument." >&2
+            usage
             ;;
     esac
 done
+shift $((OPTIND -1))
 
 if [[ -n "$selected_id_album" ]]; then
     download_lrc
@@ -325,7 +326,7 @@ elif [[ -n "$album_name" ]]; then
 
     selected_id_album=$(echo "$selected_album" | awk -F ' - ID: ' '{print $2}' | tr -d '\n')
 
-    if [ "$last_arg" == "-r" ]; then
+    if [ $rename_flag -eq 1 ]; then
         rename_file
         exit 0
     else
