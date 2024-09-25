@@ -87,7 +87,6 @@ get_album_details() {
     artist=$(echo $details | jq -r '.artists[].name' | tr '\n' ' ')
     album=$(echo $details | jq -r '.name')
     disc_number=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
-    disc_count=$(echo $details | jq '.tracks.items | map(.disc_number) | unique | length')
     total_tracks=$(echo $details | jq -r '.total_tracks')
 }
 
@@ -107,7 +106,7 @@ format_name() {
         base_name="$name"
     fi
 
-    if [[ "$disc_count" -gt 1 ]]; then
+    if [[ "$disc_number" -gt 1 ]]; then
         formatted_name="${disc_number}${formatted_track_number}. $base_name"
     else
         formatted_name="${formatted_track_number}. $base_name"
@@ -153,7 +152,7 @@ rename_file() {
     echo
     get_album_details
 
-    echo -e "${BOLD} $artist- $album ($disc_count discs | $total_tracks tracks)${RESET}"
+    echo -e "${BOLD} $artist- $album ($disc_number discs | $total_tracks tracks)${RESET}"
     echo
 
     tracks=$(echo "$details" | jq -c '.tracks.items[]')
@@ -176,7 +175,7 @@ rename_file() {
                     filename=$(basename "$file" .flac)
                     file_track_number=$(echo "$filename" | grep -oE '^[0-9]+')
 
-                    if [[ "$disc_count" -gt 1 ]]; then
+                    if [[ "$disc_number" -gt 1 ]]; then
                         expected_track_number="${disc_number}${formatted_track_number}"
                         if [[ "$file_track_number" == "$expected_track_number" ]]; then
                             new_filename="${formatted_name}.flac"
