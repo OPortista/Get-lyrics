@@ -98,7 +98,7 @@ format_name() {
     disc_number=$(echo "$track" | jq -r '.disc_number')
     id=$(echo "$track" | jq -r '.id')
     name=$(echo "$track" | jq -r '.name')
-    name="${name//[\/?*]/-}"
+    name="${name//[\\\/?*:<>]/-}"
 
     if [ -n "$secondary_artists" ]; then
         feat_artists=$(echo "$secondary_artists" | paste -sd ", " | sed 's/,/, /g')
@@ -165,7 +165,7 @@ rename_file() {
 
     echo
     echo "CONFIRM ? (y or n)"
-    read -r response
+    read -er response
 
     if [[ "$response" == "y" ]]; then
         echo
@@ -199,7 +199,7 @@ rename_file() {
 write_tag() {
     if [[ "count" -gt 0 ]]; then
         echo "Write lyrics? (y or n)"
-        read -r response
+        read -er response
         case "$response" in
             y)
                 echo
@@ -228,7 +228,7 @@ write_tag() {
                 if [[ "count" -gt 0 ]]; then
                     echo
                     echo "Clean lrc files? (y or n)"
-                    read -r response
+                    read -er response
                     case "$response" in
                         y)
                             rm -v *.lrc
@@ -331,7 +331,7 @@ elif [[ -n "$artist_name" ]]; then
 else
     echo
     echo "Enter the artist name to search:"
-    read -r artist_name
+    read -er artist_name
     main
 fi
 
@@ -339,7 +339,7 @@ write_tag
 
 if ls *.flac 1> /dev/null 2>&1; then
     echo "Rename files? (y or n)"
-    read -r response
+    read -er response
 
     case "$response" in
         y)
