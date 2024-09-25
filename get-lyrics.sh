@@ -62,7 +62,8 @@ display_results() {
             ;;
         "artist_albums")
             echo "$json_results" | jq -r '.items[] | "\(.name) - ID: \(.id) (Tracks: \(.total_tracks))"' | \
-            sort | fzf --height 40% --reverse --inline-info --header  "Choose an album :"
+            (sort && echo "Return") | \
+            fzf --height 40% --reverse --inline-info --header "Choose an album :"
             ;;
     esac
 }
@@ -94,7 +95,7 @@ format_name() {
     secondary_artists=$(echo "$track" | jq -r '.artists[].name' | tail -n +2)
     track_number=$(echo "$track" | jq -r '.track_number')
     formatted_track_number=$(printf "%02d" "$track_number")
-    disc_number=$(echo "$track" | jq -r '.disc_number')
+    disc_track=$(echo "$track" | jq -r '.disc_number')
     id=$(echo "$track" | jq -r '.id')
     name=$(echo "$track" | jq -r '.name')
     name="${name//[\\\/?*:<>]/-}"
@@ -107,7 +108,7 @@ format_name() {
     fi
 
     if [[ "$disc_number" -gt 1 ]]; then
-        formatted_name="${disc_number}${formatted_track_number}. $base_name"
+        formatted_name="${disc_track}${formatted_track_number}. $base_name"
     else
         formatted_name="${formatted_track_number}. $base_name"
     fi
@@ -118,7 +119,19 @@ download_lrc() {
     get_album_details
     count="0"
 
-    echo -e "${BOLD} $artist- $album ($disc_number discs | $total_tracks tracks)${RESET}"
+    if [[ "$disc_number" -gt 1 ]]; then
+        echo_disc="discs"
+    else
+        echo_disc="disc"
+    fi
+
+    if [[ "$total_tracks" -gt 1 ]]; then
+        echo_track="tracks"
+    else
+        echo_track="track"
+    fi
+
+    echo -e "${BOLD} $artist- $album ($disc_number $echo_disc | $total_tracks $echo_track)${RESET}"
     echo
 
     while IFS= read -r track; do
@@ -152,7 +165,19 @@ rename_file() {
     echo
     get_album_details
 
-    echo -e "${BOLD} $artist- $album ($disc_number discs | $total_tracks tracks)${RESET}"
+    if [[ "$disc_number" -gt 1 ]]; then
+        echo_disc="discs"
+    else
+        echo_disc="disc"
+    fi
+
+    if [[ "$total_tracks" -gt 1 ]]; then
+        echo_track="tracks"
+    else
+        echo_track="track"
+    fi
+
+    echo -e "${BOLD} $artist- $album ($disc_number $echo_disc | $total_tracks $echo_track)${RESET}"
     echo
 
     tracks=$(echo "$details" | jq -c '.tracks.items[]')
@@ -163,8 +188,7 @@ rename_file() {
     done <<< "$tracks"
 
     echo
-    echo "CONFIRM ? (y or n)"
-    read -er response
+    read -er -p "CONFIRM ? (y or n): " response
 
     if [[ "$response" == "y" ]]; then
         echo
@@ -176,7 +200,7 @@ rename_file() {
                     file_track_number=$(echo "$filename" | grep -oE '^[0-9]+')
 
                     if [[ "$disc_number" -gt 1 ]]; then
-                        expected_track_number="${disc_number}${formatted_track_number}"
+                        expected_track_number="${disc_track}${formatted_track_number}"
                         if [[ "$file_track_number" == "$expected_track_number" ]]; then
                             new_filename="${formatted_name}.flac"
                             mv -v "$file" "$new_filename"
@@ -197,8 +221,7 @@ rename_file() {
 
 write_tag() {
     if [[ "count" -gt 0 ]]; then
-        echo "Write lyrics? (y or n)"
-        read -er response
+        read -er -p "Write lyrics? (y or n): " response
         case "$response" in
             y)
                 echo
@@ -226,11 +249,10 @@ write_tag() {
             n)
                 if [[ "count" -gt 0 ]]; then
                     echo
-                    echo "Clean lrc files? (y or n)"
-                    read -er response
+                    read -er -p "Clean lrc files? (y or n): " response
                     case "$response" in
                         y)
-                            rm -v *.lrc
+                            rm *.lrc
                             echo
                             ;;
                         *)
@@ -246,7 +268,7 @@ write_tag() {
     fi
 }
 
-main() {
+select_artist() {
     search_results=$(search "$artist_name" "$access_token" artist)
     selected_artist=$(display_results "$search_results" artists)
 
@@ -255,6 +277,14 @@ main() {
         exit 1
     fi
 
+    select_album
+
+    if [[ "$selected_album" == *"Return"* ]]; then
+        select_artist
+    fi
+}
+
+select_album() {
     selected_id_artist=$(echo "$selected_artist" | awk -F ' - ID: ' '{print $2}' | tr -d '\n')
     artist_albums=$(get_artist_albums "$selected_id_artist" "$access_token")
     selected_album=$(display_results "$artist_albums" artist_albums)
@@ -263,6 +293,11 @@ main() {
         echo "No album chosen."
         exit 1
     fi
+}
+
+main() {
+    select_artist
+
 
     selected_id_album=$(echo "$selected_album" | awk -F '- ID: | \\(Tracks' '{print $2}' | tr -d '\n')
 
@@ -307,7 +342,12 @@ done
 shift $((OPTIND -1))
 
 if [[ -n "$selected_id_album" ]]; then
-    download_lrc
+    if [ $rename_flag -eq 1 ]; then
+        rename_file
+        exit 0
+    else
+        download_lrc
+    fi
 elif [[ -n "$album_name" ]]; then
     album_results=$(search "$album_name" "$access_token" album)
     selected_album=$(display_results "$album_results" albums)
@@ -328,17 +368,14 @@ elif [[ -n "$album_name" ]]; then
 elif [[ -n "$artist_name" ]]; then
     main
 else
-    echo
-    echo "Enter the artist name to search:"
-    read -er artist_name
+    read -er -p "Enter the artist name to search: " artist_name
     main
 fi
 
 write_tag
 
 if ls *.flac 1> /dev/null 2>&1; then
-    echo "Rename files? (y or n)"
-    read -er response
+    read -er -p "Rename files? (y or n): " response
 
     case "$response" in
         y)
