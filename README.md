@@ -38,17 +38,17 @@ If you already have the Spotify album ID, you can use it directly:
 ### Rename FLAC Files Only
 The `-r` option can be used alongside any of the lyrics search options (`-a`, `-A`, or `-i`), but **it will only rename the FLAC files without downloading lyrics**. For example:
 
-- Rename the files by artist name (without downloading lyrics):
+- Rename the files by artist name:
   ```bash
   ./get-lyrics.sh -A "ARTIST_NAME" -r
   ```
 
-- Rename the files by album name (without downloading lyrics):
+- By album name:
   ```bash
   ./get-lyrics.sh -a "ALBUM_NAME" -r
   ```
 
-- Rename the files by album ID (without downloading lyrics):
+- By album ID:
   ```bash
   ./get-lyrics.sh -i "ALBUM_ID" -r
   ```
@@ -64,7 +64,7 @@ This feature is particularly useful for renaming rap music files that include ma
   `[discnumber][track_number]. [title]`
   
 - **Tracks with Featuring Artists**:  
-  `[discnumber][track_number]. [title] feat [other_artist]`
+  `[track_number]. [title] feat [other_artist]`
 
 ### File Naming Requirements
 
@@ -72,18 +72,18 @@ Your FLAC files must be named with the appropriate track numbers at the beginnin
 
 - **Single Disc Album**:  
   ```
-  01 TITLE
-  02 TITLE
+  01 ...
+  02 ...
   ...
   ```
 
 - **Multi-Disc Album**:  
   ```
-  101 TITLE   # First disc, track 1
-  102 TITLE   # First disc, track 2
+  101 ...   # First disc, track 1
+  102 ...   # First disc, track 2
   ...
-  201 TITLE   # Second disc, track 1
-  202 TITLE   # Second disc, track 2
+  201 ...   # Second disc, track 1
+  202 ...   # Second disc, track 2
   ...
   ```
 
