@@ -23,17 +23,35 @@ To download lyrics for a specific artist:
 ./get-lyrics.sh -A "ARTIST_NAME"
 ```
 
-### Search for Lyrics by Album
+### Search for Lyrics by Album Name
 To download lyrics for a specific album:
 ```bash
 ./get-lyrics.sh -a "ALBUM_NAME"
 ```
 
-### Rename FLAC Files Only
-If you only want to use the file renaming function, add the `-r` option:
+### Search for Lyrics by Album ID
+If you already have the Spotify album ID, you can use it directly:
 ```bash
-./get-lyrics.sh -A "ARTIST_NAME" -r
+./get-lyrics.sh -i "ALBUM_ID"
 ```
+
+### Rename FLAC Files Only
+The `-r` option can be used alongside any of the lyrics search options (`-a`, `-A`, or `-i`), but **it will only rename the FLAC files without downloading lyrics**. For example:
+
+- Rename the files by artist name (without downloading lyrics):
+  ```bash
+  ./get-lyrics.sh -A "ARTIST_NAME" -r
+  ```
+
+- Rename the files by album name (without downloading lyrics):
+  ```bash
+  ./get-lyrics.sh -a "ALBUM_NAME" -r
+  ```
+
+- Rename the files by album ID (without downloading lyrics):
+  ```bash
+  ./get-lyrics.sh -i "ALBUM_ID" -r
+  ```
 
 ## Renaming Function
 
