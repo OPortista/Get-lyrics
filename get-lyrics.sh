@@ -11,8 +11,8 @@ CHECK="${GREEN}${CHECKs}${RESET}"
 CROSS="${RED}${CROSSs}${RESET}"
 SKIP="${BLUE}${SKIPs}${RESET}"
 
-SPOTIFY_CLIENT_ID="xxxxx"
-SPOTIFY_CLIENT_SECRET="xxxxx"
+SPOTIFY_CLIENT_ID=""
+SPOTIFY_CLIENT_SECRET=""
 
 album_name=""
 artist_name=""
@@ -99,6 +99,7 @@ format_name() {
     id=$(echo "$track" | jq -r '.id')
     name=$(echo "$track" | jq -r '.name')
     name="${name//[\\\/?*:<>\"]/-}"
+    name="${name/À/a}"
 
     if [ -n "$secondary_artists" ]; then
         feat_artists=$(echo "$secondary_artists" | paste -sd ", " | sed 's/,/, /g')
