@@ -220,6 +220,35 @@ rename_file() {
     fi
 }
 
+rename_fix() {
+    echo "What do you want to remove from the file name ?"
+    echo "1) What is inside the parentheses."
+    echo "2) What is inside the brackets."
+    echo
+    read -p "Enter the choice (1 or 2) : " choice
+
+    case "$choice" in
+        1)
+            echo "You have selected option 1."
+            for file in *\(*\)*.flac; do
+                new_file=$(echo "$file" | sed -E 's/ \([^)]*\) ?//g')
+                mv -v "$file" "${new_file% }"
+            done
+            ;;
+        2)
+            echo "You have selected option 2."
+            for file in *\[*\]*.flac; do
+                new_file=$(echo "$file" | sed -E 's/ \[[^]]*\]?//g')
+                mv -v "$file" "${new_file% }"
+            done
+            ;;
+        *)
+            echo "Invalid choice. Please enter 1 or 2."
+            ;;
+    esac
+    exit 0
+}
+
 write_tag() {
     if [[ "count" -gt 0 ]]; then
         read -er -p "Write lyrics? (y or n): " response
@@ -328,7 +357,11 @@ while getopts ":a:A:i:r" opt; do
             selected_id_album="$OPTARG"
             ;;
         r)
-            rename_flag=1
+            if [ "$#" -eq 1 ]; then
+                rename_fix
+            else
+                rename_flag=1
+            fi
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
